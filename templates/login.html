@@ -1,0 +1,74 @@
+<html>
+<head>
+  <meta name="google-signin-client_id" content="709121004365-elji8mh3l732pomdapabo2jlph39svj8.apps.googleusercontent.com">
+  <!--LOAD PRE-REQUISITES FOR GOOGLE SIGN IN -->
+   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js">
+  </script>
+
+<script src="https://apis.google.com/js/platform.js" async defer></script>
+<!-- END PRE-REQUISITES FOR GOOGLE SIGN IN -->
+
+
+</head>
+
+
+<body>  
+
+
+<!-- GOOGLE PLUS SIGN IN-->
+
+<div id="signinButton" class="g-signin2" data-onsuccess="signInCallback"></div>
+          
+  
+
+<div id="result"></div>
+
+<script>
+  function signInCallback(googleUser) {
+    if (googleUser) {
+
+      // Hide the sign-in button now that the user is authorized
+      $('#signinButton').attr('style', 'display: none');
+
+      // Send the one-time-use code to the server, if the server responds, write a 'login successful' message to the web page and then redirect back to the main restaurants page
+      $.ajax({
+        type: 'POST',
+        url: '/gconnect?state={{STATE}}',
+        data: {json_str: googleUser},
+        contentType: 'application/json; charset=utf-8'
+        }); 
+    }else{
+        console.log("Error getting profile");
+      } 
+    }
+
+  function onSignIn(googleUser) {
+  var profile = googleUser.getBasicProfile();
+  console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
+  console.log('Name: ' + profile.getName());
+  console.log('Image URL: ' + profile.getImageUrl());
+  console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is not present.
+}
+</script>
+
+<a href="#" onclick="signOut();">Sign out</a>
+<script>
+  function signOut() {
+      window.onLoadCallback = function(){
+      gapi.auth2.init({
+          client_id: "709121004365-elji8mh3l732pomdapabo2jlph39svj8.apps.googleusercontent.com"
+        });
+    }
+    var auth2 = gapi.auth2.getAuthInstance();
+    auth2.signOut().then(function () {
+      console.log('User signed out.');
+    });
+  }
+</script>
+
+
+<!--END GOOGLE PLUS SIGN IN -->
+
+  </body>
+
+  </html>

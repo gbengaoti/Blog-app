@@ -1,0 +1,55 @@
+<html>
+<head>
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<div class="header">
+    {% if signed_in %}
+        <h1>{{user_name}}'s blog </h1>
+        <div class = "gsignin">
+            <a href="{{ url_for('signoutBlog')}}">Sign out</a>
+        </div>
+    {% else %}
+        <h1>Blogger's world </h1>
+        <div class = "gsignin">
+            <a href="{{ url_for('signin')}}">Sign in</a>
+        </div>
+    {% endif %}
+</div>
+
+<div class = 'flash'>
+		      {% with messages = get_flashed_messages() %}
+      {% if messages %}
+          
+        <ul>
+        {% for message in messages %}
+            <li> <strong> {{ message }} </strong> </li>
+        {% endfor %}
+        </ul>
+        {% endif %}
+    {% endwith %}
+
+</div>
+
+<div class="pane">
+    {% if is_creator %}
+        <a href = "{{ url_for('addArticle', user_id = user.id)}}">Add New Post</a>
+    {% endif %}
+
+{% for i in articles %}
+		<p>{{i.title}} </p>
+
+	<a href="{{url_for('viewUserArticle', user_id = user.id, article_id = i.id)}}" >View</a>
+    {% if is_creator %}
+    	<a href="{{ url_for('editArticle', user_id = user.id, article_id = i.id)}}" >Edit</a>
+    	<a href="{{ url_for('deleteArticle', user_id = user.id, article_id = i.id)}}" >Delete</a>
+    {% endif %}
+	
+
+{% endfor %}
+
+</div>
+
+</body>
+
+</html>
