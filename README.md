@@ -11,7 +11,9 @@ Guests and signed users can view articles from every user.
 
 Only creators of articles can perform addition, deletion and creation of articles to their blog.
 
-The app uses sqlalchemy for the database.
+Both guests and users access to the restful API provided by the application 
+
+The app uses sqlalchemy ORM and postgresql for the database.
 
 The required libaries are in a bash file called requirements.txt
 
