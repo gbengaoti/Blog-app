@@ -13,7 +13,9 @@ Only creators of articles can perform addition, deletion and creation of article
 
 The app uses sqlalchemy for the database.
 
-The required libaries are in a bash file called pg_config.sh
+The required libaries are in a bash file called requirements.txt
+
+Python 2.7 is required
 
 To use the blog app - run the database_setup.py file, this creates the database
 
