@@ -24,3 +24,6 @@ To use the blog app - run the database_setup.py file, this creates the database
 Populate the database by running lotsofusersposts.py
 
 Lastly, run project.py
+
+
+The app is deployed on Heroku - http://yass-blog-platform.herokuapp.com/
