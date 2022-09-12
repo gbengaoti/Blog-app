@@ -1,19 +1,22 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort
-from requests_oauthlib import OAuth2Session
-import google.oauth2.credentials
-import googleapiclient.discovery
 from flask import session as login_session
 import random
 import string
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm.exc import NoResultFound
 from database_setup import User, Base, Article, Comments
-from flask_oauth import OAuth
+from authlib.integrations.flask_client import OAuth
+import os
 import json
 import httplib2
-from sqlalchemy.orm.exc import NoResultFound
+import google.oauth2.credentials
+import google_auth_oauthlib.flow
+
 
 app = Flask(__name__)
+app.secret_key = 'super_secret_blog_keys'
 
 engine = create_engine('sqlite:///blogarticles.db')
 Base.metadata.bind = engine
@@ -22,7 +25,6 @@ session_factory = sessionmaker(bind=engine)
 session = scoped_session(session_factory)
 
 #validate token
-
 @app.before_request
 def before_request():
     session()
@@ -38,77 +40,152 @@ GOOGLE_CLIENT_ID = json.loads(
 
 GOOGLE_CLIENT_SECRET = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_secret']
-APPLICATION_NAME = "Blog Application"
 
-REDIRECT_URI = '/oauth2callback'  # one of the Redirect URIs from Google APIs console
 
-oauth = OAuth()
 
-google = oauth.remote_app('google',
-    base_url='https://www.google.com/accounts/',
-    authorize_url='https://accounts.google.com/o/oauth2/auth',
-    request_token_url=None,
-    request_token_params={'scope':  "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/plus.login https://www.googleapis.com/auth/plus.me",
-    'response_type': 'code'},
+# # Use the client_secret.json file to identify the application requesting
+# # authorization. The client ID (from that file) and access scopes are required.
+# flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+#     'client_secrets.json',
+#     scopes=['https://www.googleapis.com/oauth2/v1/userinfo'])
+
+# flow.redirect_uri = 'http://localhost:5000/oauth2callback'  # one of the Redirect URIs from Google APIs console
+
+# # Generate URL for request to Google's OAuth 2.0 server.
+# # Use kwargs to set optional request parameters.
+# authorization_url, state = flow.authorization_url(
+#     # Enable offline access so that you can refresh an access token without
+#     # re-prompting the user for permission. Recommended for web server apps.
+#     access_type='offline',
+#     # Enable incremental authorization. Recommended as a best practice.
+#     include_granted_scopes='true')
+
+# #not sure where this goes
+# return flask.redirect(authorization_url)
+
+# state = flask.session['state']
+# flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
+#     'client_secret.json',
+#     scopes=['https://www.googleapis.com/oauth2/v1/userinfo'],
+#     state=state)
+# flow.redirect_uri = flask.url_for('oauth2callback', _external=True)
+
+# authorization_response = flask.request.url
+# flow.fetch_token(authorization_response=authorization_response)
+
+# # Store the credentials in the session.
+# # ACTION ITEM for developers:
+# #     Store user's access and refresh tokens in your data store if
+# #     incorporating this code into your real app.
+# credentials = flow.credentials
+# flask.session['credentials'] = {
+#     'token': credentials.token,
+#     'refresh_token': credentials.refresh_token,
+#     'token_uri': credentials.token_uri,
+#     'client_id': credentials.client_id,
+#     'client_secret': credentials.client_secret,
+#     'scopes': credentials.scopes}
+
+oauth = OAuth(app)
+
+google = oauth.register(
+    name='google',
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
     access_token_url='https://accounts.google.com/o/oauth2/token',
     access_token_method='POST',
     access_token_params={'grant_type': 'authorization_code'},
-    consumer_key=GOOGLE_CLIENT_ID,
-    consumer_secret=GOOGLE_CLIENT_SECRET)
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    api_base_url='https://www.googleapis.com/oauth2/v1/',
+    userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo',  # This is only needed if using openId to fetch user info
+    client_kwargs={'scope': 'openid email profile'},
+)
 
+# google = oauth.remote_app('google',
+#     base_url='https://www.google.com/accounts/',
+#     authorize_url='https://accounts.google.com/o/oauth2/auth',
+#     request_token_url=None,
+#     request_token_params={'scope':  "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/plus.login https://www.googleapis.com/auth/plus.me",
+#     'response_type': 'code'},
+#     access_token_url='https://accounts.google.com/o/oauth2/token',
+#     access_token_method='POST',
+#     access_token_params={'grant_type': 'authorization_code'},
+#     consumer_key=GOOGLE_CLIENT_ID,
+#     consumer_secret=GOOGLE_CLIENT_SECRET)
 
 @app.route('/')
 def index():
-    access_token = login_session.get('access_token')
-    if access_token is None:
-        return redirect(url_for('login'))
+    return render_template('signin.html')
 
-    access_token = access_token[0]
-    from urllib2 import Request, urlopen, URLError
+# @app.route('/')
+# def index():
+#     access_token = login_session.get('access_token')
+#     if access_token is None:
+#         return redirect(url_for('login'))
 
-    headers = {'Authorization': 'OAuth '+access_token}
+#     access_token = access_token[0]
+#     from urllib2 import Request, urlopen, URLError
+
+#     headers = {'Authorization': 'OAuth '+access_token}
     
-    req = Request('https://www.googleapis.com/oauth2/v1/userinfo',
-    None, headers)
-    try:
-        res = urlopen(req)
-    except URLError, e:
-        if e.code == 401:
-            # Unauthorized - bad token
-            login_session.pop('access_token', None)
-            return redirect(url_for('login'))
-        #return res.read()
-        return redirect(url_for('signin'))
-    resp = res.read()
-    text = json.loads(resp)
-    login_session['provider'] = 'google'
-    login_session['username'] = text["name"]
-    login_session['email'] = text["email"]
-    # see if user exists, if not create user
-    user_id = getUserID(login_session['email'])
-    if not user_id:
-        user_id = createUser(login_session)
-    login_session['user_id'] = user_id
-    print(user_id)
-    flash("you are now logged in as %s" % login_session['username'])
-    return redirect(url_for('users'))
+#     req = Request('https://www.googleapis.com/oauth2/v1/userinfo',
+#     None, headers)
+#     try:
+#         res = urlopen(req)
+#     except (URLError, e):
+#         if e.code == 401:
+#             # Unauthorized - bad token
+#             login_session.pop('access_token', None)
+#             return redirect(url_for('login'))
+#         #return res.read()
+#         return redirect(url_for('signin'))
+#     resp = res.read()
+#     text = json.loads(resp)
+#     login_session['provider'] = 'google'
+#     login_session['username'] = text["name"]
+#     login_session['email'] = text["email"]
+#     # see if user exists, if not create user
+#     user_id = getUserID(login_session['email'])
+#     if not user_id:
+#         user_id = createUser(login_session)
+#     login_session['user_id'] = user_id
+#     print(user_id)
+#     flash("you are now logged in as %s" % login_session['username'])
+#     return redirect(url_for('users'))
 
 @app.route('/login')
 def login():
-    callback=url_for('authorized', _external=True)
-    return google.authorize(callback=callback)
+    google = oauth.create_client('google')
+    #redirect_uri = url_for('authorize', _external=True)
+    return google.authorize_redirect(REDIRECT_URI)
 
 
-@app.route(REDIRECT_URI)
-@google.authorized_handler
-def authorized(resp):
-    access_token = resp['access_token']
-    login_session['access_token'] = access_token, ''
-    return redirect(url_for('index'))
+@app.route('/authorize')
+def authorize():
+    google = oauth.create_client('google')
+    token = google.authorize_access_token()
+    resp = google.get('userinfo')
+    user_info = resp.json()
+    user = oauth.google.userinfo()
+    login_session['provider'] = 'google'
+    login_session['username'] = text["name"]
+    login_session['email'] = text["email"]
+    login_session.permanent = True  # make the session permanant so it keeps existing after broweser gets closed
+    return redirect('/')
 
-@google.tokengetter
-def get_access_token():
-    return login_session.get('access_token')
+
+
+# @app.route(REDIRECT_URI)
+# @google.authorized_handler
+# def authorized(resp):
+#     access_token = resp['access_token']
+#     login_session['access_token'] = access_token, ''
+#     return redirect(url_for('index'))
+
+# @google.tokengetter
+# def get_access_token():
+#     return login_session.get('access_token')
 
 @app.route('/index')
 def signin():
@@ -125,76 +202,76 @@ def signin():
 
 #################### FACEBOOK SIGN IN ########################################
 
-@app.route('/fbconnect', methods=['POST'])
-def fbconnect():
-    if request.args.get('state') != login_session['state']:
-        response = make_response(json.dumps('Invalid state parameter.'), 401)
-        response.headers['Content-Type'] = 'application/json'
-        return response
-    access_token = request.data
+# @app.route('/fbconnect', methods=['POST'])
+# def fbconnect():
+#     if request.args.get('state') != login_session['state']:
+#         response = make_response(json.dumps('Invalid state parameter.'), 401)
+#         response.headers['Content-Type'] = 'application/json'
+#         return response
+#     access_token = request.data
 
-    # <a href="https://www.facebook.com/dialog/oauth/?client_id=YOUR_APP_ID&redirect_uri=YOUR_REDIRECT_URL&state=YOUR_STATE_VALUE&scope=COMMA_SEPARATED_LIST_OF_PERMISSION_NAMES">LOGIN!</a>
-
-
-    app_id = json.loads(open('fb_client_secrets.json', 'r').read())[
-        'web']['app_id']
-    app_secret = json.loads(
-        open('fb_client_secrets.json', 'r').read())['web']['app_secret']
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
-        app_id, app_secret, access_token)
-    h = httplib2.Http()
-    result = h.request(url, 'GET')[1]
+#     # <a href="https://www.facebook.com/dialog/oauth/?client_id=YOUR_APP_ID&redirect_uri=YOUR_REDIRECT_URL&state=YOUR_STATE_VALUE&scope=COMMA_SEPARATED_LIST_OF_PERMISSION_NAMES">LOGIN!</a>
 
 
-    # Use token to get user info from API
-    userinfo_url = "https://graph.facebook.com/v3.3/me"
-    '''
-        Due to the formatting for the result from the server token exchange we have to
-        split the token first on commas and select the first index which gives us the key : value
-        for the server access token then we split it on colons to pull out the actual token value
-        and replace the remaining quotes with nothing so that it can be used directly in the graph
-        api calls
-    '''
-    token = result.split(',')[0].split(':')[1].replace('"', '')
+#     app_id = json.loads(open('fb_client_secrets.json', 'r').read())[
+#         'web']['app_id']
+#     app_secret = json.loads(
+#         open('fb_client_secrets.json', 'r').read())['web']['app_secret']
+#     url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
+#         app_id, app_secret, access_token)
+#     h = httplib2.Http()
+#     result = h.request(url, 'GET')[1]
 
-    url = 'https://graph.facebook.com/v3.3/me?access_token=%s&fields=name,id,email' % token
-    h = httplib2.Http()
-    result = h.request(url, 'GET')[1]
-    # print "url sent for API access:%s"% url
-    # print "API JSON result: %s" % result
-    data = json.loads(result)
-    login_session['provider'] = 'facebook'
-    login_session['username'] = data["name"]
-    # error checking for if user has no email address
-    login_session['email'] = data["email"]
-    login_session['facebook_id'] = data["id"]
-    # The token must be stored in the login_session in order to properly logout
-    login_session['access_token'] = token
 
-    # see if user exists, if not create user
-    user_id = getUserID(login_session['email'])
-    if not user_id:
-        user_id = createUser(login_session)
-    login_session['user_id'] = user_id
+#     # Use token to get user info from API
+#     userinfo_url = "https://graph.facebook.com/v3.3/me"
+#     '''
+#         Due to the formatting for the result from the server token exchange we have to
+#         split the token first on commas and select the first index which gives us the key : value
+#         for the server access token then we split it on colons to pull out the actual token value
+#         and replace the remaining quotes with nothing so that it can be used directly in the graph
+#         api calls
+#     '''
+#     token = result.split(',')[0].split(':')[1].replace('"', '')
+
+#     url = 'https://graph.facebook.com/v3.3/me?access_token=%s&fields=name,id,email' % token
+#     h = httplib2.Http()
+#     result = h.request(url, 'GET')[1]
+#     # print "url sent for API access:%s"% url
+#     # print "API JSON result: %s" % result
+#     data = json.loads(result)
+#     login_session['provider'] = 'facebook'
+#     login_session['username'] = data["name"]
+#     # error checking for if user has no email address
+#     login_session['email'] = data["email"]
+#     login_session['facebook_id'] = data["id"]
+#     # The token must be stored in the login_session in order to properly logout
+#     login_session['access_token'] = token
+
+#     # see if user exists, if not create user
+#     user_id = getUserID(login_session['email'])
+#     if not user_id:
+#         user_id = createUser(login_session)
+#     login_session['user_id'] = user_id
     
-    output = ''
-    output += '<h1>Welcome, '
-    output += login_session['username']
+#     output = ''
+#     output += '<h1>Welcome, '
+#     output += login_session['username']
 
-    output += '!</h1>'
-    flash("you are now logged in as %s" % login_session['username'])
-    return output
-#################### FACEBOOK SIGN OUT########################################
+#     output += '!</h1>'
+#     flash("you are now logged in as %s" % login_session['username'])
+#     return output
+# #################### FACEBOOK SIGN OUT########################################
 
 
-@app.route('/fbdisconnect')
-def fbdisconnect():
-    facebook_id = login_session['facebook_id']
-    # The access token must me included to successfully logout
-    access_token = login_session['access_token']
-    url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id,access_token)
-    h = httplib2.Http()
-    result = h.request(url, 'DELETE')[1]
+# @app.route('/fbdisconnect')
+# def fbdisconnect():
+#     facebook_id = login_session['facebook_id']
+#     # The access token must me included to successfully logout
+#     access_token = login_session['access_token']
+#     url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id,access_token)
+#     h = httplib2.Http()
+#     result = h.request(url, 'DELETE')[1]
 
 
 ####################  SIGN OUT ###############################################
@@ -420,6 +497,5 @@ def getUserID(email):
 
 
 if __name__ == '__main__':
-    app.secret_key = 'super_secret_blog_keys'
     app.debug = True
     app.run(host = '0.0.0.0', port = 5000)
