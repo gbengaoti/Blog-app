@@ -52,7 +52,7 @@
 {% if signed_in %}
 	<form action = "{{ url_for('view_user_article', user_id = user.id, article_id = article.id)}}" method = "post">
 	         
-		<textarea rows = "5" cols = "50" name = "comment", placeholder="Add comment here"></textarea>
+		<textarea rows = "5" cols = "50" name = "comment" placeholder="Add comment here"></textarea>
 		<br/>
 		<input type = "submit" value = "submit" />
 		<a href="{{ url_for('user_articles', user_id = user.id)}}" >Back</a>
