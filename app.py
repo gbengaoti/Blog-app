@@ -3,6 +3,7 @@ from flask import session as login_session
 import random
 import string
 from sqlalchemy import create_engine
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import sessionmaker, scoped_session
 from database_setup import User, Base, Article, Comments
 import os
@@ -26,7 +27,8 @@ Base.metadata.bind = engine
 session_factory = sessionmaker(bind=engine)
 session = scoped_session(session_factory)
 
-#################### GOOGLE SIGN IN ########################################
+# GOOGLE SIGN IN
+
 GOOGLE_CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
 
@@ -79,13 +81,18 @@ def callback():
     login_session["username"] = id_info.get("name")
     login_session["provider"] = 'google'
     login_session["email"] = id_info.get("email")
+    # see if user exists, if not create user
+    user_id = get_user_id(login_session["email"])
+    if not user_id:
+        user_id = create_user(login_session)
+    login_session['user_id'] = user_id
     return redirect("/index")
 
 
 @app.route('/clear')
 def logout():
     login_session.clear()
-    return redirect(url_for('signin'))
+    return redirect(url_for('sign_in'))
 
 
 def is_signed_in():
@@ -96,7 +103,7 @@ def is_signed_in():
 
 
 @app.route('/index')
-def signin():
+def sign_in():
     state = ''.join(random.choice(string.ascii_uppercase + string.digits)
                     for x in range(32))
     login_session['state'] = state
@@ -111,23 +118,24 @@ def signin():
 #################### JSON CRUD OPERATIONS ###################################
 
 @app.route('/user/<int:user_id>/article/<int:article_id>/comments/JSON')
-def commentsJSON(user_id, article_id):
+def comments_json(user_id, article_id):
     allComments = session.query(Comments).filter_by(article_id=article_id, writer_id=user_id).all()
     return jsonify(Comments=[c.serialize for c in allComments])
 
 
 @app.route('/user/<int:user_id>/articles/JSON')
-def articlesJSON(user_id):
+def articles_json(user_id):
     articles = session.query(Article).filter_by(user_id=user_id).all()
     return jsonify(Articles=[article.serialize for article in articles])
 
 
 @app.route('/user/<int:user_id>/article/<int:article_id>/JSON')
-def articleJSON(user_id, article_id):
+def article_json(user_id, article_id):
+    article = {}
     try:
         article = session.query(Article).filter_by(id=article_id, user_id=user_id).one()
     except NoResultFound as e:
-        article = {}
+        pass
     finally:
         if article == {}:
             return json.dumps(article)
@@ -136,13 +144,13 @@ def articleJSON(user_id, article_id):
 
 
 @app.route('/users/JSON')
-def usersJSON():
+def users_json():
     # get all users
     users = session.query(User).all()
     return jsonify(Users=[user.serialize for user in users])
 
 
-#################### CRUD OPERATIONS ########################################
+# CRUD OPERATIONS
 
 @app.route('/users')
 def users():
@@ -155,9 +163,9 @@ def users():
 
 
 @app.route('/users/<int:user_id>')
-def userArticles(user_id):
+def user_articles(user_id):
     # search for user by ID
-    user = getUserById(user_id)
+    user = get_user_by_id(user_id)
     if user != None:
         if is_signed_in():
             is_creator = (user_id == login_session['user_id'])
@@ -177,11 +185,11 @@ def userArticles(user_id):
 
 
 @app.route('/user/<int:user_id>/article/<int:article_id>/view', methods=['GET', 'POST'])
-def viewUserArticle(user_id, article_id):
+def view_user_article(user_id, article_id):
     # search article by user_id and article_id
-    user = getUserById(user_id)
+    user = get_user_by_id(user_id)
     if user != None:
-        article = getArticle(article_id, user_id)
+        article = get_article(article_id, user_id)
         # error handling - if article does not exist
         if article != None:
             allComments = session.query(Comments).filter_by(article_id=article_id, writer_id=user_id).all()
@@ -205,35 +213,35 @@ def viewUserArticle(user_id, article_id):
 
 
 @app.route('/user/<int:user_id>/article/new', methods=['GET', 'POST'])
-def addArticle(user_id):
+def add_article(user_id):
     if is_signed_in() and (user_id == login_session['user_id']):
-        user = getUserById(user_id)
+        user = get_user_by_id(user_id)
         # make sure that only blog owner can add to her blog
         # error handling - no empty articles can be added
         if request.method == 'POST':
             if request.form['title'] == "" and request.form['body'] == "":
                 flash("Cannot Add Empty Post - Try again")
-                return redirect(url_for('userArticles', user_id=user_id))
+                return redirect(url_for('user_articles', user_id=user_id))
             else:
                 newArticle = Article(title=request.form['title'], article_body=request.form['body'], user_id=user_id)
                 session.add(newArticle)
                 session.commit()
                 flash("New Post Added Successfully!")
-                return redirect(url_for('userArticles', user_id=user_id))
+                return redirect(url_for('user_articles', user_id=user_id))
         else:
             return render_template('add_article.html', user=user, signed_in=is_signed_in())
     else:
         flash("You need to be logged in to add an article")
-        return redirect(url_for('userArticles', user_id=user_id))
+        return redirect(url_for('user_articles', user_id=user_id))
 
 
 @app.route('/user/<int:user_id>/article/<int:article_id>/edit', methods=['GET', 'POST'])
-def editArticle(user_id, article_id):
+def edit_article(user_id, article_id):
     if is_signed_in() and (user_id == login_session['user_id']):
         # get article from database
-        user = getUserById(user_id)
+        user = get_user_by_id(user_id)
         # error handling - what happens in case of invalid article_id or invalid user_id
-        toEditArticle = getArticle(article_id, user_id)
+        toEditArticle = get_article(article_id, user_id)
         if toEditArticle != None:
             if request.method == 'POST':
                 if request.form['title']:
@@ -250,22 +258,22 @@ def editArticle(user_id, article_id):
             abort(404)
     else:
         flash("You need to be logged in to edit an article")
-        return redirect(url_for('userArticles', user_id=user_id))
+        return redirect(url_for('user_articles', user_id=user_id))
 
 
 @app.route('/user/<int:user_id>/article/<int:article_id>/delete', methods=['GET', 'POST'])
-def deleteArticle(user_id, article_id):
+def delete_article(user_id, article_id):
     # get article
     if is_signed_in() and (user_id == login_session['user_id']):
-        user = getUserById(user_id)
+        user = get_user_by_id(user_id)
         # error handling - what happens in case of invalid article_id or invalid user_id
-        toDeleteArticle = getArticle(article_id, user_id)
+        toDeleteArticle = get_article(article_id, user_id)
         if toDeleteArticle != None:
             if request.method == 'POST':
                 session.delete(toDeleteArticle)
                 session.commit()
                 flash("Post Successfully Deleted")
-                return redirect(url_for('userArticles', user_id=user_id))
+                return redirect(url_for('user_articles', user_id=user_id))
             else:
                 return render_template('delete_article.html', user=user, article=toDeleteArticle,
                                        signed_in=is_signed_in())
@@ -276,16 +284,16 @@ def deleteArticle(user_id, article_id):
         return redirect(url_for('userArticles', user_id=user_id))
 
 
-def createUser(login_session):
+def create_user(login_session):
     newUser = User(user_name=login_session['username'], user_email=login_session[
         'email'])
     session.add(newUser)
     session.commit()
-    user = getUserByEmail(login_session['email'])
+    user = get_user_by_email(login_session['email'])
     return user.id
 
 
-def getArticle(article_id, user_id):
+def get_article(article_id, user_id):
     try:
         article = session.query(Article).filter_by(id=article_id, user_id=user_id).one()
         return article
@@ -293,7 +301,7 @@ def getArticle(article_id, user_id):
         return None
 
 
-def getUserById(user_id):
+def get_user_by_id(user_id):
     try:
         user = session.query(User).filter_by(id=user_id).one()
         return user
@@ -301,15 +309,16 @@ def getUserById(user_id):
         return None
 
 
-def getUserByEmail(email):
+def get_user_by_email(email):
     try:
         user = session.query(User).filter_by(user_email=email).one()
+        print(user)
         return user
     except NoResultFound as e:
         return None
 
 
-def getUserID(email):
+def get_user_id(email):
     try:
         user = session.query(User).filter_by(user_email=email).one()
         return user.id

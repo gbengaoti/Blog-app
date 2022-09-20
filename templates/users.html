@@ -7,12 +7,12 @@
     {% if signed_in %}
         <h1>{{user_name}}'s blog </h1>
         <div class = "gsignin">
-            <a href="{{ url_for('signoutBlog')}}">Sign out</a>
+            <a href="{{ url_for('logout')}}">Sign out</a>
         </div>
     {% else %}
         <h1>Blogger's world </h1>
         <div class = "gsignin">
-            <a href="{{ url_for('signin')}}">Sign in</a>
+            <a href="{{ url_for('sign_in')}}">Sign in</a>
         </div>
     {% endif %}
 </div>
@@ -40,7 +40,7 @@
         {% for i in users %}
             <p>{{i.user_name}} </p>
 
-        <a href="{{url_for('userArticles', user_id = i.id)}}" >View Articles</a>
+        <a href="{{url_for('user_articles', user_id = i.id)}}" >View Articles</a>
         
         {% endfor %}
     {% endif %}
