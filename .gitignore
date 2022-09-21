@@ -5,3 +5,5 @@ google_auth.py
 /.idea
 profileid*
 sample.py
+*.pyc
+*.db

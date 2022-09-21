@@ -1,5 +1,3 @@
-import os
-import sys
 from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -7,6 +5,7 @@ from sqlalchemy import create_engine
 import datetime
 
 Base = declarative_base()
+
 
 class User(Base):
     __tablename__ = 'user'
@@ -21,7 +20,7 @@ class User(Base):
         """Return object data in easily serializeable format"""
         return {
             'name': self.user_name,
-            'email':self.user_email,
+            'email': self.user_email,
             'id': self.id,
         }
 
@@ -41,8 +40,8 @@ class Article(Base):
         """Return object data in easily serializeable format"""
         return {
             'title': self.title,
-            'article_body':self.article_body,
-            'user_id':self.user_id,
+            'article_body': self.article_body,
+            'user_id': self.user_id,
             'id': self.id,
         }
 
@@ -69,7 +68,7 @@ class Comments(Base):
         }
 
 
-engine = create_engine('sqlite:///blogarticles.db')
-
-
+engine = create_engine('sqlite:///blog-articles.db')
+#
+# error on removing the following statement
 Base.metadata.create_all(engine)
