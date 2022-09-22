@@ -189,9 +189,9 @@ def view_user_article(user_id, article_id):
         article = get_article(article_id, user_id)
         # error handling - if article does not exist
         if article is not None:
-            all_comments = session.query(Comments).filter_by(article_id=article_id, writer_id=user_id).all()
+            all_comments = get_article_comments(article_id, user_id)
             if request.method == 'POST':
-                # error handling - no empty comment should be added
+                # error handling - no empty comment  should be added
                 if request.form['comment'] != "":
                     new_comment = Comments(comment_text=request.form['comment'], article=article, user=article)
                     session.add(new_comment)
@@ -266,9 +266,15 @@ def delete_article(user_id, article_id):
         user = get_user_by_id(user_id)
         # error handling - what happens in case of invalid article_id or invalid user_id
         to_delete_article = get_article(article_id, user_id)
+        to_delete_article_comments = get_article_comments(article_id, user_id)
+
         if to_delete_article is not None:
             if request.method == 'POST':
                 session.delete(to_delete_article)
+                session.commit()
+                # delete comments on post too
+                for comment in to_delete_article_comments:
+                    session.delete(comment)
                 session.commit()
                 flash("Post Successfully Deleted")
                 return redirect(url_for('user_articles', user_id=user_id))
@@ -298,6 +304,12 @@ def get_article(article_id, user_id):
     except NoResultFound:
         return None
 
+def get_article_comments(article_id, user_id):
+    try:
+        all_comments = session.query(Comments).filter_by(article_id=article_id, writer_id=user_id).all()
+        return all_comments
+    except NoResultFound:
+        return None
 
 def get_user_by_id(user_id):
     try:
