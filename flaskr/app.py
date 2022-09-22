@@ -127,11 +127,9 @@ def articles_json(user_id):
 def article_json(user_id, article_id):
     article = {}
     try:
-        article = session.query(Article).filter_by(id=article_id, user_id=user_id).one()
-    except NoResultFound:
-        pass
+        article = session.query(Article).filter_by(id=article_id, user_id=user_id).one_or_none()
     finally:
-        if article == {}:
+        if article == None:
             return json.dumps(article)
         else:
             return jsonify(Article=article.serialize)
@@ -298,11 +296,8 @@ def create_user():
 
 
 def get_article(article_id, user_id):
-    try:
-        article = session.query(Article).filter_by(id=article_id, user_id=user_id).one()
-        return article
-    except NoResultFound:
-        return None
+    article = session.query(Article).filter_by(id=article_id, user_id=user_id).one_or_none()
+    return article
 
 def get_article_comments(article_id, user_id):
     try:
@@ -312,28 +307,20 @@ def get_article_comments(article_id, user_id):
         return None
 
 def get_user_by_id(user_id):
-    try:
-        user = session.query(User).filter_by(id=user_id).one()
-        return user
-    except NoResultFound:
-        return None
+    user = session.query(User).filter_by(id=user_id).one_or_none()
+    return user
+
 
 
 def get_user_by_email(email):
-    try:
-        user = session.query(User).filter_by(user_email=email).one()
-        print(user)
-        return user
-    except NoResultFound:
-        return None
+    user = session.query(User).filter_by(user_email=email).one_or_none()
+    return user
+
 
 
 def get_user_id(email):
-    try:
-        user = session.query(User).filter_by(user_email=email).one()
-        return user.id
-    except NoResultFound:
-        return None
+    user = session.query(User).filter_by(user_email=email).one_or_none()
+    return user.id
 
 
 if __name__ == '__main__':
