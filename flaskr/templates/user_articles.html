@@ -1,37 +1,6 @@
-<html>
-<head>
-    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-<div class="header">
-    {% if signed_in %}
-        <h1>{{user_name}}'s blog </h1>
-        <div class = "gsignin">
-            <a href="{{ url_for('logout')}}">Sign out</a>
-        </div>
-    {% else %}
-        <h1>Blogger's world </h1>
-        <div class = "gsignin">
-            <a href="{{ url_for('sign_in')}}">Sign in</a>
-        </div>
-    {% endif %}
-</div>
+{% extends 'base.html' %}
 
-<div class = 'flash'>
-		      {% with messages = get_flashed_messages() %}
-      {% if messages %}
-          
-        <ul>
-        {% for message in messages %}
-            <li> <strong> {{ message }} </strong> </li>
-        {% endfor %}
-        </ul>
-        {% endif %}
-    {% endwith %}
-
-</div>
-
-<div class="pane">
+{% block content %}
     {% if is_creator %}
         <a href = "{{ url_for('add_article', user_id = user.id)}}">Add New Post</a>
     {% endif %}
@@ -44,12 +13,6 @@
     	<a href="{{ url_for('edit_article', user_id = user.id, article_id = i.id)}}" >Edit</a>
     	<a href="{{ url_for('delete_article', user_id = user.id, article_id = i.id)}}" >Delete</a>
     {% endif %}
-	
 
 {% endfor %}
-
-</div>
-
-</body>
-
-</html>
+{% endblock %}

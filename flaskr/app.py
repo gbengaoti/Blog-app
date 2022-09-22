@@ -53,7 +53,11 @@ def login_is_required(function):
 
 @app.route('/')
 def index():
-    return render_template('signin.html')
+    if is_signed_in():
+        return render_template('index.html', STATE=login_session['state'], signed_in=is_signed_in(),
+                        user_name=login_session["username"])
+    else:
+        return render_template('index.html')
 
 
 @app.route('/login')
@@ -87,13 +91,15 @@ def callback():
     if not user_id:
         user_id = create_user()
     login_session['user_id'] = user_id
-    return redirect("/index")
-
+    state = ''.join(random.choice(string.ascii_uppercase + string.digits)
+                    for _ in range(32))
+    login_session['state'] = state
+    return render_template('index.html', STATE=login_session['state'], signed_in=is_signed_in(), user_name=login_session["username"])
 
 @app.route('/clear')
 def logout():
     login_session.clear()
-    return redirect(url_for('sign_in'))
+    return redirect(url_for('index'))
 
 
 def is_signed_in():
@@ -101,19 +107,6 @@ def is_signed_in():
         return True
     else:
         return False
-
-
-@app.route('/index')
-def sign_in():
-    state = ''.join(random.choice(string.ascii_uppercase + string.digits)
-                    for _ in range(32))
-    login_session['state'] = state
-    if is_signed_in():
-        username = login_session['username']
-        print("you are signed in, " + username)
-    else:
-        username = "Bloggers world"
-    return render_template('signin.html', STATE=state, signed_in=is_signed_in(), user_name=username)
 
 
 # JSON CRUD OPERATIONS

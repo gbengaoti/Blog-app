@@ -1,16 +1,16 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
 	<link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
-<!--    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js">-->
-<!--  </script>-->
-
 </head>
-<body>
+
+<!--functionality for naming the blog-->
+{% block header %}
 <div class="header">
     {% if signed_in %}
         <h1>{{user_name}}'s blog </h1>
         <div class="gsignin">
-<!--    change name of this div        -->
             <a href="{{ url_for('logout')}}">Sign out</a>
         </div>
     {% else %}
@@ -18,19 +18,15 @@
         <div class="gsignin">
             <a href="{{ url_for('login')}}">Login with Google</a>
         </div>
-<!--        <div class="fsignin">-->
-<!--        <button>-->
-<!--         <fb:login-button scope="public_profile,email" onlogin="sendTokenToServer();">-->
-<!--            <a href='javascript:sendTokenToServer()'>Login with Facebook</a>-->
-<!--        </fb:login-button>-->
-<!--        </button>-->
-<!--        </div>-->
     {% endif %}
 </div>
+{% endblock %}
+<body>
+<!--functionality for flash messages-->
 <div class = 'flash'>
 		      {% with messages = get_flashed_messages() %}
       {% if messages %}
-          
+
         <ul>
         {% for message in messages %}
             <li> <strong> {{ message }} </strong> </li>
@@ -41,16 +37,9 @@
 
 </div>
 
-<div id="result"></div>
-
-
 
 <div class="pane">
-	<p>In Blogger's world, we present articles from the best bloggers in the world.</p>
-
-	<p> You can sign in, to share your thoughts on their articles </p>
-
-	<p>No pressure, check them out for yourself <a href="{{ url_for('users')}}" >View Bloggers</a></p>
+{% block content %}{% endblock %}
 </div>
 </body>
 </html>

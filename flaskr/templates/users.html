@@ -1,39 +1,7 @@
-<html>
-<head>
-    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-<div class="header">
-    {% if signed_in %}
-        <h1>{{user_name}}'s blog </h1>
-        <div class = "gsignin">
-            <a href="{{ url_for('logout')}}">Sign out</a>
-        </div>
-    {% else %}
-        <h1>Blogger's world </h1>
-        <div class = "gsignin">
-            <a href="{{ url_for('sign_in')}}">Sign in</a>
-        </div>
-    {% endif %}
-</div>
+{% extends 'base.html' %}
 
-<div class = 'flash'>
-		      {% with messages = get_flashed_messages() %}
-      {% if messages %}
-          
-        <ul>
-        {% for message in messages %}
-            <li> <strong> {{ message }} </strong> </li>
-        {% endfor %}
-        </ul>
-        {% endif %}
-    {% endwith %}
-
-</div>
-
-<div class="pane">
-
-    {% if users == [] %}
+{% block content %}
+{% if users == [] %}
         <p>No users yet, login to become a user</p>
 
     {% else %}
@@ -41,14 +9,7 @@
             <p>{{i.user_name}} </p>
 
         <a href="{{url_for('user_articles', user_id = i.id)}}" >View Articles</a>
-        
+
         {% endfor %}
     {% endif %}
-
-    
-
-</div>
-
-</body>
-
-</html>
+{% endblock %}

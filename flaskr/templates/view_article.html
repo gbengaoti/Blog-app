@@ -1,37 +1,6 @@
-<html>
-<head>
-	<link rel=stylesheet type=text/css href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-<div class="header">
-    {% if signed_in %}
-        <h1>{{user.user_name}}'s blog </h1>
-        <div class = "gsignin">
-            <a href="{{ url_for('logout')}}">Sign out</a>
-        </div>
-    {% else %}
-        <h1>Blogger's world </h1>
-        <div class = "gsignin">
-            <a href="{{ url_for('sign_in')}}">Sign in</a>
-        </div>
-    {% endif %}
-</div>
+{% extends 'base.html' %}
 
-<div class = 'flash'>
-		      {% with messages = get_flashed_messages() %}
-      {% if messages %}
-          
-        <ul>
-        {% for message in messages %}
-            <li> <strong> {{ message }} </strong> </li>
-        {% endfor %}
-        </ul>
-        {% endif %}
-    {% endwith %}
-
-</div>
-
-<div class="pane">
+{% block content %}
 <h2>{{article.title}}</h2>
 
 <p>{{article.article_body}}</p>
@@ -44,14 +13,14 @@
 {% for c in comments %}
  	<div class="date"><p><em>{{c.created_date}}</em></p></div>
  	<div class="comment_text"><p>{{c.comment_text}}</p></div>
-	 
+
 {% endfor %}
 
 </div>
 
 {% if signed_in %}
 	<form action = "{{ url_for('view_user_article', user_id = user.id, article_id = article.id)}}" method = "post">
-	         
+
 		<textarea rows = "5" cols = "50" name = "comment" placeholder="Add comment here"></textarea>
 		<br/>
 		<input type = "submit" value = "submit" />
@@ -59,16 +28,10 @@
 	</form>
 {% else %}
     <span>
-        <a href = "{{ url_for('sign_in')}}">Sign in to add comment</a>
+        <a href = "{{ url_for('login')}}">Sign in to add comment</a>
         <a href="{{ url_for('user_articles', user_id = user.id)}}" >Back</a>
     </span>
-	
+
 {% endif %}
 
- 
-</div>
-	
-
-</body>
-
-</html>
+{% endblock %}
