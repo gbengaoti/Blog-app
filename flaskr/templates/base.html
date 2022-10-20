@@ -9,16 +9,20 @@
 {% block header %}
 <div class="header">
     {% if signed_in %}
-        <h1>{{user_name}}'s blog </h1>
-        <div class="gsignin">
-            <a href="{{ url_for('logout')}}">Sign out</a>
-        </div>
+        <a href="{{ url_for('index')}}" class="logo">{{user_name}}'s blog </a>
+    <div class="header-right">
+        <a href="{{ url_for('logout')}}">Sign out</a>
+    </div>
     {% else %}
-        <h1>Blogger's world </h1>
-        <div class="gsignin">
+        <a href="{{ url_for('index')}}" class="logo">Blogger's world </a>
+        <div class="header-right">
             <a href="{{ url_for('login')}}">Login with Google</a>
         </div>
     {% endif %}
+        <div class="header-right">
+            <a href="{{ url_for('users')}}">View Bloggers</a>
+            <a href="{{ url_for('index')}}">Home</a>
+        </div>
 </div>
 {% endblock %}
 <body>

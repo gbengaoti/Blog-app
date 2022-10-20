@@ -8,7 +8,7 @@ html, body {
     
 }
 
-.header {
+/*.header {
     background: #1c1c1c;
     color: #d5d5d5;
     height: 3em;
@@ -17,52 +17,47 @@ html, body {
     margin: 0;
     width: 100%;
     z-index: 10001;
+}*/
+
+.header {
+  overflow: hidden;
+  background-color: #d5d5d5;
+  padding: 20px 10px;
+  max-height:45px
 }
 
-.header h1 {
-    font-family: 'Pacifico', cursive;
-    display: inline-block;
-    height: inherit;
-    left: 0;
-    line-height: inherit;
-    margin: 0;
-    padding-left: 50px;
-    position: absolute;
-    top: 0;
-    color: #e5474b;
-    font-size: 1.0em;
-    font-weight: normal;
-}
-
+/* Style the header links */
 .header a {
-    font-family: sans-serif;
-    text-decoration: none;
+  float: left;
+  color: black;
+  text-align: top;
+  padding: 12px;
+  text-decoration: none;
+  font-size: 18px;
+  line-height: inherit;
+  border-radius: 4px;
 }
 
-.header .gsignin {
-    display: inline-block;
-    left: 65%;
-    margin-left: 5px;
-    padding: 0px;
-    position: absolute;
-    color: #e5474b;
+.header a.logo {
+  font-size: 25px;
+  font-weight: bold;
+  font-family: 'Pacifico', cursive;
+}
+/* Change the background color on mouse-over */
+.header a:hover {
+  background-color: #ddd;
+  color: black;
 }
 
+/* Style the active/current link*/
+.header a.active {
+  background-color: dodgerblue;
+  color: white;
+}
 
-.header .fsignin {
-    font-family: 'Pacifico', cursive;
-    display: inline-block;
-    height: inherit;
-    left: 80%;
-    line-height: inherit;
-    margin: 0px;
-    padding: 6px;
-    position: absolute;
-    top: 0;
-    color: #e5474b;
-    font-size: 1.0em;
-    text-decoration: none;
-    font-weight: normal;
+/* Float the link section to the right */
+.header-right {
+  float: right;
 }
 
 .pane {
